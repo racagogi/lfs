@@ -1,0 +1,9 @@
+#!/bin/bash
+
+mkdir -p $LFS/{etc,var} $LFS/usr/{bin,lib,sbin}
+
+for i in bin lib sbin; do
+    ln -s usr/$i $LFS/$i
+done
+
+mkdir $LFS/lib64

@@ -85,3 +85,13 @@ wget --input-file=wget-list-systemd --continue --directory-prefix=sources
 curl -O https://www.linuxfromscratch.org/lfs/view/stable-systemd/md5sums && mv md5sums sorces && cd sorces
 md5sum -c md5sums
 ```
+
+## make bash env
+
+```bash
+bash
+./scripts/dirLayout
+./scripts/.bash_profile
+./scripts/.bashrc
+
+```
