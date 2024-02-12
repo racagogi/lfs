@@ -95,3 +95,27 @@ bash
 ./scripts/.bashrc
 
 ```
+
+## build cross toolchain
+
+1. Binutils
+
+```bash
+cd sorces
+tar -xf binutils-2.41 && cd binutils-2.41
+mkdir build
+../configure --prefix=$HOME/tools \
+             --with-sysroot=$LFS \
+             --target=$LFS_TGT   \
+             --disable-nls       \
+             --enable-gprofng=no \
+             --disable-werror
+time make -j$(nproc)
+
+```
+
+```
+real    0m13.936s
+user    1m13.136s
+sys     0m8.690s
+```

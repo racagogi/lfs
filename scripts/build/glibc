@@ -1,0 +1,53 @@
+#!/bin/bash
+
+case $(uname -m) in
+    i?86)   ln -sfv ld-linux.so.2 $LFS/lib/ld-lsb.so.3
+    ;;
+    x86_64) ln -sfv ../lib/ld-linux-x86-64.so.2 $LFS/lib64
+            ln -sfv ../lib/ld-linux-x86-64.so.2 $LFS/lib64/ld-lsb-x86-64.so.3
+    ;;
+esac
+
+PKGVER=2.39
+PKGNAME=glibc
+SOURCE="https://ftp.gnu.org/gnu/glibc"
+DESCR="first step build glibc"
+
+if [ ! -d "$LFS/source" ]; then
+    mkdir $LFS/source
+fi
+
+prepare(){
+pushd $LFS/source
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.gz"
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.gz.sig"
+gpg --verify ${PKGNAME}-${PKGVER}.tar.gz.sig ${PKGNAME}-${PKGVER}.tar.gz
+tar -zxf ${PKGNAME}-${PKGVER}.tar.gz
+popd
+}
+
+config(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    mkdir build && cd build
+    echo "rootsbindir=/usr/sbin" > configparms
+    ../configure                             \
+      --prefix=/usr                      \
+      --host=$LFS_TGT                    \
+      --build=$(../scripts/config.guess) \
+      --enable-kernel=4.14               \
+      --with-headers=$LFS/usr/include    \
+      libc_cv_slibdir=/usr/lib
+    popd
+}
+
+build(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}/build
+    make -j$(nproc)
+    make DESTDIR=$LFS install
+    sed '/RTLDLIST=/s@/usr@@g' -i $LFS/usr/bin/ldd
+    popd
+}
+
+prepare
+config
+time build

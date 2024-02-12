@@ -1,0 +1,78 @@
+#!/bin/bash
+
+PKGVER=13.2.0
+PKGNAME=gcc
+SOURCE="https://ftp.gnu.org/gnu"
+DESCR="first step build gcc"
+
+MPFRVER=4.2.1
+GMPVER=6.3.0
+MPCVER=1.3.1
+if [ ! -d "$LFS/source" ]; then
+    mkdir $LFS/source
+fi
+
+prepare(){
+pushd $LFS/source
+curl -O "$SOURCE/gcc/${PKGNAME}-${PKGVER}/${PKGNAME}-${PKGVER}.tar.gz"
+curl -O "$SOURCE/gcc/${PKGNAME}-${PKGVER}/${PKGNAME}-${PKGVER}.tar.gz.sig"
+gpg --verify ${PKGNAME}-${PKGVER}.tar.gz.sig ${PKGNAME}-${PKGVER}.tar.gz
+tar -zxf ${PKGNAME}-${PKGVER}.tar.gz
+
+curl -O "$SOURCE/mpfr/mpfr-${MPFRVER}.tar.gz"
+curl -O "$SOURCE/mpfr/mpfr-${MPFRVER}.tar.gz.sig"
+gpg --verify mpfr-${MPFRVER}.tar.gz.sig mpfr-${MPFRVER}.tar.gz
+
+curl -O "$SOURCE/gmp/gmp-${GMPVER}.tar.gz"
+curl -O "$SOURCE/gmp/gmp-${GMPVER}.tar.gz.sig"
+gpg --verify gmp-${GMPVER}.tar.gz.sig gmp-${GMPVER}.tar.gz
+
+curl -O "$SOURCE/mpc/mpc-${MPCVER}.tar.gz"
+curl -O "$SOURCE/mpc/mpc-${MPCVER}.tar.gz.sig"
+gpg --verify mpc-${MPCVER}.tar.gz.sig mpc-${MPCVER}.tar.gz
+
+cd ${PKGNAME}-${PKGVER}
+tar -zxf ../mpfr-${MPFRVER}.tar.gz && mv mpfr-${MPFRVER} mpfr
+tar -zxf ../gmp-${GMPVER}.tar.gz && mv gmp-${GMPVER} gmp
+tar -zxf ../mpc-${MPCVER}.tar.gz && mv mpc-${MPCVER} mpc
+popd
+}
+
+config(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    sed -e '/m64=/s/lib64/lib/' \
+        -i.orig gcc/config/i386/t-linux64
+    mkdir build && cd build
+   ../configure                   \
+        --target=$LFS_TGT         \
+        --prefix=$LFS/tools      \
+        --with-glibc-version=2.39 \
+        --with-sysroot=$LFS       \
+        --with-newlib             \
+        --without-headers         \
+        --enable-default-pie      \
+        --enable-default-ssp      \
+        --disable-nls             \
+        --disable-shared          \
+        --disable-multilib        \
+        --disable-threads         \
+        --disable-libatomic       \
+        --disable-libgomp         \
+        --disable-libquadmath     \
+        --disable-libssp          \
+        --disable-libvtv          \
+        --disable-libstdcxx       \
+        --enable-languages=c,c++
+    popd
+}
+
+build(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}/build
+    make -j$(nproc)
+    make install
+    popd
+}
+
+prepare
+config
+time build

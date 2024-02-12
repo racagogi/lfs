@@ -4,7 +4,7 @@ LFS="$HOME/LFS"
 LC_ALL=C
 LFS_TGT=$(uname -m)-lfs-linux-gnu
 PATH=/usr/bin
-PATH=$HOME/tools/bin:$PATH
+PATH=$LFS/tools/bin:$PATH
 CONFIG_SITE=$LFS/usr/share/config.site
 export LFS LC_ALL LFS_TGT PATH CONFIG_SITE
 alias ls='ls --color=auto'

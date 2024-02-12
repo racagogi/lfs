@@ -1,0 +1,32 @@
+#!/bin/bash
+
+PKGVER=6.7.4
+PKGNAME=linux
+SOURCE="https://mirrors.edge.kernel.org/pub/linux/kernel/v6.x"
+DESCR="first step build linux api"
+
+if [ ! -d "$LFS/source" ]; then
+    mkdir $LFS/source
+fi
+
+prepare(){
+pushd $LFS/source
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.gz"
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.gz.sign"
+gpg --verify ${PKGNAME}-${PKGVER}.tar.gz.sign ${PKGNAME}-${PKGVER}.tar.gz
+tar -zxf ${PKGNAME}-${PKGVER}.tar.gz
+popd
+}
+
+build(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    make mrproper
+    make headers
+    find usr/include -type f ! -name '*.h' -delete
+    cp -rv usr/include $LFS/usr
+    popd
+}
+
+prepare
+config
+time build
