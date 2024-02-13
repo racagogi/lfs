@@ -1,0 +1,45 @@
+#!/bin/bash
+
+PKGVER=2.42
+PKGNAME=binutils
+SOURCE="https://ftp.gnu.org/gnu/binutils"
+DESCR="first step build binutils"
+
+if [ ! -d "$LFS/source" ]; then
+    mkdir $LFS/source
+fi
+
+prepare(){
+pushd $LFS/source
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.gz"
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.gz.sig"
+gpg --verify ${PKGNAME}-${PKGVER}.tar.gz.sig ${PKGNAME}-${PKGVER}.tar.gz
+tar -zxf ${PKGNAME}-${PKGVER}.tar.gz
+popd
+}
+
+config(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    sed '6009s/$add_dir//' -i ltmain.sh
+    mkdir build && cd build
+    ../configure               \
+    --prefix=/usr              \
+    --build=$(../config.guess) \
+    --host=$LFS_TGT            \
+    --enable-shared            \
+    --enable-gprofng=no        \
+    --disable-werror
+    popd
+}
+
+build(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}/build
+    make -j$(nproc)
+    make DESTDIR=$LFS install
+    rm -v $LFS/usr/lib/lib{bfd,ctf,ctf-nobfd,opcodes,sframe}.{a,la}
+    popd
+}
+
+prepare
+config
+time build

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+chown -R root:root $LFS/{usr,lib,var,etc,bin,sbin,tools,lib64}
