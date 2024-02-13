@@ -1,0 +1,37 @@
+#!/bin/bash
+
+PKGVER=1.13
+PKGNAME=gzip
+SOURCE="https://ftp.gnu.org/gnu/gzip"
+DESCR="first step build binutils"
+
+if [ ! -d "$LFS/source" ]; then
+    mkdir $LFS/source
+fi
+
+prepare(){
+pushd $LFS/source
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.xz"
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.xz.sig"
+gpg --verify ${PKGNAME}-${PKGVER}.tar.xz.sig ${PKGNAME}-${PKGVER}.tar.xz
+tar -xf ${PKGNAME}-${PKGVER}.tar.xz
+popd
+}
+
+config(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    ./configure --prefix=/usr   \
+                --host=$LFS_TGT
+    popd
+}
+
+build(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    make -j$(nproc)
+    make DESTDIR=$LFS install
+    popd
+}
+
+prepare
+config
+time build

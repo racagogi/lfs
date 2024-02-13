@@ -1,0 +1,40 @@
+#!/bin/bash
+
+PKGVER=5.2.21
+PKGNAME=bash
+SOURCE="https://ftp.gnu.org/gnu/bash"
+DESCR="first step build binutils"
+
+if [ ! -d "$LFS/source" ]; then
+    mkdir $LFS/source
+fi
+
+prepare(){
+pushd $LFS/source
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.gz"
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.gz.sig"
+gpg --verify ${PKGNAME}-${PKGVER}.tar.gz.sig ${PKGNAME}-${PKGVER}.tar.gz
+tar -zxf ${PKGNAME}-${PKGVER}.tar.gz
+popd
+}
+
+config(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    ./configure --prefix=/usr                  \
+            --build=$(sh support/config.guess) \
+            --host=$LFS_TGT                    \
+            --without-bash-malloc
+    popd
+}
+
+build(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    make -j$(nproc)
+    make DESTDIR=$LFS install
+    ln -sv bash $LFS/bin/sh
+    popd
+}
+
+prepare
+config
+time build

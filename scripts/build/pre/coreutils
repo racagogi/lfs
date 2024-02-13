@@ -1,0 +1,45 @@
+#!/bin/bash
+
+PKGVER=9.4
+PKGNAME=coreutils
+SOURCE="https://ftp.gnu.org/gnu/coreutils"
+DESCR="first step build binutils"
+
+if [ ! -d "$LFS/source" ]; then
+    mkdir $LFS/source
+fi
+
+prepare(){
+pushd $LFS/source
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.gz"
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.gz.sig"
+gpg --verify ${PKGNAME}-${PKGVER}.tar.gz.sig ${PKGNAME}-${PKGVER}.tar.gz
+tar -zxf ${PKGNAME}-${PKGVER}.tar.gz
+popd
+}
+
+config(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    ./configure --prefix=/usr                       \
+            --host=$LFS_TGT                         \
+            --build=$(build-aux/config.guess)       \
+            --enable-install-program=hostname       \
+            --enable-no-install-program=kill,uptime \
+            gl_cv_macro_MB_CUR_MAX_good=y
+    popd
+}
+
+build(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    make -j$(nproc)
+    make DESTDIR=$LFS install
+    mv -v $LFS/usr/bin/chroot              $LFS/usr/sbin
+    mkdir -pv $LFS/usr/share/man/man8
+    mv -v $LFS/usr/share/man/man1/chroot.1 $LFS/usr/share/man/man8/chroot.8
+    sed -i 's/"1"/"8"/'                    $LFS/usr/share/man/man8/chroot.8
+    popd
+}
+
+prepare
+config
+time build

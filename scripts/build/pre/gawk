@@ -1,0 +1,39 @@
+#!/bin/bash
+
+PKGVER=5.3.0
+PKGNAME=gawk
+SOURCE="https://ftp.gnu.org/gnu/gawk"
+DESCR="first step build binutils"
+
+if [ ! -d "$LFS/source" ]; then
+    mkdir $LFS/source
+fi
+
+prepare(){
+pushd $LFS/source
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.xz"
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.xz.sig"
+gpg --verify ${PKGNAME}-${PKGVER}.tar.xz.sig ${PKGNAME}-${PKGVER}.tar.xz
+tar -xf ${PKGNAME}-${PKGVER}.tar.xz
+popd
+}
+
+config(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    sed -i 's/extras//' Makefile.in
+    ./configure --prefix=/usr   \
+                --host=$LFS_TGT \
+                --build=$(build-aux/config.guess)
+    popd
+}
+
+build(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    make -j$(nproc)
+    make DESTDIR=$LFS install
+    popd
+}
+
+prepare
+config
+time build

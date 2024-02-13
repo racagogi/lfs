@@ -1,0 +1,38 @@
+#!/bin/bash
+
+PKGVER=5.4.6
+PKGNAME=xz
+SOURCE="https://github.com/tukaani-project/xz/releases/download"
+DESCR="first step build binutils"
+
+if [ ! -d "$LFS/source" ]; then
+    mkdir $LFS/source
+fi
+
+prepare(){
+pushd $LFS/source
+curl -LO "$SOURCE/v${PKGVER}/${PKGNAME}-${PKGVER}.tar.gz"
+tar -zxf ${PKGNAME}-${PKGVER}.tar.gz
+popd
+}
+config(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    ./configure --prefix=/usr   \
+            --host=$LFS_TGT     \
+            --build=$(build-aux/config.guess)\
+            --disable-static                  \
+            --docdir=/usr/share/doc/${PKGNAME}-${PKGVER}
+    popd
+}
+
+build(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    make -j$(nproc)
+    make DESTDIR=$LFS install
+    rm -v $LFS/usr/lib/liblzma.la
+    popd
+}
+
+prepare
+config
+time build

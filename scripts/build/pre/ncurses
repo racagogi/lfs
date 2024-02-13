@@ -1,0 +1,53 @@
+#!/bin/bash
+
+PKGVER=6.4
+PKGNAME=ncurses
+SOURCE="https://ftp.gnu.org/gnu/ncurses"
+DESCR="first step build binutils"
+
+if [ ! -d "$LFS/source" ]; then
+    mkdir $LFS/source
+fi
+
+prepare(){
+pushd $LFS/source
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.gz"
+curl -O "$SOURCE/${PKGNAME}-${PKGVER}.tar.gz.sig"
+gpg --verify ${PKGNAME}-${PKGVER}.tar.gz.sig ${PKGNAME}-${PKGVER}.tar.gz
+tar -zxf ${PKGNAME}-${PKGVER}.tar.gz
+popd
+}
+
+config(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    mkdir build && cd build
+    ../configure
+    make -C include
+    make -C progs tic
+    cd ..
+    ./configure --prefix=/usr            \
+            --host=$LFS_TGT              \
+            --build=$(./config.guess)    \
+            --mandir=/usr/share/man      \
+            --with-manpage-format=normal \
+            --with-shared                \
+            --without-normal             \
+            --with-cxx-shared            \
+            --without-debug              \
+            --without-ada                \
+            --disable-stripping          \
+            --enable-widec
+    popd
+}
+
+build(){
+    pushd $LFS/source/${PKGNAME}-${PKGVER}
+    make -j$(nproc)
+    make DESTDIR=$LFS TIC_PATH=$(pwd)/build/progs/tic install
+    echo "INPUT(-lncursesw)" > $LFS/usr/lib/libncurses.so
+    popd
+}
+
+prepare
+config
+time build

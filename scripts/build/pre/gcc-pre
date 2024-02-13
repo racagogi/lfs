@@ -40,8 +40,6 @@ popd
 
 config(){
     pushd $LFS/source/${PKGNAME}-${PKGVER}
-    sed -e '/m64=/s/lib64/lib/' \
-        -i.orig gcc/config/i386/t-linux64
     mkdir build && cd build
    ../configure                   \
         --target=$LFS_TGT         \
@@ -70,6 +68,8 @@ build(){
     pushd $LFS/source/${PKGNAME}-${PKGVER}/build
     make -j$(nproc)
     make install
+    cat gcc/limitx.h gcc/glimits.h gcc/limity.h > \
+    `dirname $($LFS_TGT-gcc -print-libgcc-file-name)`/include/limits.h
     popd
 }
 
