@@ -1,0 +1,76 @@
+#!/bin/env bash
+PKGNAME=gcc
+PKGVER=13.2.0
+LFS=/mnt/lfs
+DEFPKG=(mpfr gmp mpc)
+DEFVER=(4.2.1 6.3.0 1.3.1)
+LENGTH=${#DEFPKG[@]}
+pkgsrc(){
+    pushd $LFS/source
+if [ ! -f $PKGNAME-$PKGVER.tar.gz ]; then
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER/$PKGNAME-$PKGVER.tar.gz"
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER/$PKGNAME-$PKGVER.tar.gz.sig"
+    gpg --verify "$PKGNAME-$PKGVER.tar.gz.sig" "$PKGNAME-$PKGVER.tar.gz"
+    tar -xf "$PKGNAME-$PKGVER.tar.gz"
+fi
+for ((i=0;i<LENGTH;i++)); do
+    DEFNAME=${DEFPKG[i]}
+    DEFVER=${DEFVER[i]}
+    if [ ! -f $DEFNAME-$DEFVER.tar.gz ]; then
+        wget "https://ftp.kaist.ac.kr/gnu/$DEFNAME/$DEFNAME-$DEFVER.tar.gz"
+        wget "https://ftp.kaist.ac.kr/gnu/$DEFNAME/$DEFNAME-$DEFVER.tar.gz.sig"
+        gpg --verify "$DEFNAME-$DEFVER.tar.gz.sig" "$DEFNAME-$DEFVER.tar.gz"
+        tar -xf "$DEFNAME-$DEFVER.tar.gz"
+        mv "$DEFNAME-$DEFVER" "$PKGNAME-$PKGVER/$DEFNAME"
+        rm "$DEFNAME-$DEFVER.tar.gz.sig" "$DEFNAME-$DEFVER.tar.gz"
+    fi
+done
+    popd
+}
+
+build(){
+    pushd "$LFS/source/$PKGNAME-$PKGVER"
+    mkdir build
+    cd build
+    ../configure              \
+    --prefix=$LFS/tools       \
+    --target=$LFS_TGT         \
+    --with-glibc-version=2.39 \
+    --with-sysroot=$LFS       \
+    --with-newlib             \
+    --without-headers         \
+    --enable-default-pie      \
+    --enable-default-ssp      \
+    --disable-nls             \
+    --disable-shared          \
+    --disable-multilib        \
+    --disable-threads         \
+    --disable-libatomic       \
+    --disable-libgomp         \
+    --disable-libquadmath     \
+    --disable-libssp          \
+    --disable-libvtv          \
+    --disable-libstdcxx       \
+    --enable-languages=c,c++
+#    --disable-bootstrap
+    make -j24
+    make DESTDIR="$LFS/build/$PKGNAME-$PKGVER" install
+    popd
+}
+
+postbuild(){
+    pushd $LFS/source
+    rm -rf "$PKGNAME-$PKGVER.tar.gz" "$PKGNAME-$PKGVER.tar.gz.sig"
+    pushd "$LFS/build/$PKGNAME-$PKGVER/$LFS"
+    rmv tools /mnt/lfs/tools
+    popd
+    cd "$PKGNAME-$PKGVER"
+    cat gcc/limitx.h gcc/glimits.h gcc/limity.h > \
+    `dirname $($LFS_TGT-gcc -print-libgcc-file-name)`/include/limits.h
+    cd ..
+    rm -rf "$PKGNAME-$PKGVER"
+    popd
+}
+pkgsrc
+build
+postbuild

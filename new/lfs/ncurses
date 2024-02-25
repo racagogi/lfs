@@ -1,0 +1,55 @@
+#!/bin/env bash
+PKGNAME=ncurses
+PKGVER=6.4
+LFS=/mnt/lfs
+pkgsrc(){
+    pushd $LFS/source
+if [ ! -f $PKGNAME-$PKGVER.tar.gz ]; then
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER.tar.gz"
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER.tar.gz.sig"
+    gpg --verify "$PKGNAME-$PKGVER.tar.gz.sig" "$PKGNAME-$PKGVER.tar.gz"
+fi
+    popd
+}
+
+build(){
+    pushd $LFS/source
+    tar -xf "$PKGNAME-$PKGVER.tar.gz"
+    cd $PKGNAME-$PKGVER
+    mkdir build
+    pushd build
+    ../configure
+    make -C include
+    make -C progs tic
+    popd
+    ./configure --prefix=/usr                \
+            --host=$LFS_TGT              \
+            --build=$(./config.guess)    \
+            --mandir=/usr/share/man      \
+            --with-manpage-format=normal \
+            --with-shared                \
+            --without-normal             \
+            --with-cxx-shared            \
+            --without-debug              \
+            --without-ada                \
+            --disable-stripping          \
+            --enable-widec
+    make -j24
+    make DESTDIR="$LFS/build/$PKGNAME-$PKGVER" TIC_PATH=$(pwd)/build/progs/tic install
+    ln -sv libncursesw.so $LFS/usr/lib/libncurses.so
+    popd
+}
+
+postbuild(){
+    pushd $LFS/source
+    rm -rf "$PKGNAME-$PKGVER.tar.gz" "$PKGNAME-$PKGVER.tar.gz.sig" "$PKGNAME-$PKGVER"
+    pushd "$LFS/build/"
+    rmv "$PKGNAME-$PKGVER" $LFS
+    sed -e 's/^#if.*XOPEN.*$/#if 1/' \
+        -i $LFS/usr/include/curses.h
+    popd
+    popd
+}
+pkgsrc
+build
+postbuild

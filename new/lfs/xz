@@ -1,0 +1,38 @@
+#!/bin/env bash
+PKGNAME=xz
+PKGVER=5.6.0
+LFS=/mnt/lfs
+pkgsrc(){
+    pushd $LFS/source
+if [ ! -f $PKGNAME-$PKGVER.tar.gz ]; then
+    wget "https://github.com/tukaani-project/$PKGNAME/releases/download/v$PKGVER/$PKGNAME-$PKGVER.tar.gz"
+fi
+    popd
+}
+
+build(){
+    pushd $LFS/source
+    tar -xf "$PKGNAME-$PKGVER.tar.gz"
+    cd $PKGNAME-$PKGVER
+    ./configure --prefix=/usr                 \
+            --host=$LFS_TGT                   \
+            --build=$(build-aux/config.guess) \
+            --disable-static                  \
+            --docdir=/usr/share/doc/xz-5.4.6
+    make -j24
+    make DESTDIR="$LFS/build/$PKGNAME-$PKGVER" install
+    popd
+}
+
+postbuild(){
+    pushd $LFS/source
+    rm -rf "$PKGNAME-$PKGVER.tar.gz" "$PKGNAME-$PKGVER.tar.gz.sig" "$PKGNAME-$PKGVER"
+    pushd "$LFS/build/"
+    rmv "$PKGNAME-$PKGVER" $LFS
+    rm -v $LFS/usr/lib/liblzma.la
+    popd
+    popd
+}
+pkgsrc
+build
+postbuild

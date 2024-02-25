@@ -1,0 +1,48 @@
+#!/bin/env bash
+PKGNAME=binutils
+PKGVER=2.42
+LFS=/mnt/lfs
+pkgsrc(){
+    pushd $LFS/source
+if [ ! -f $PKGNAME-$PKGVER.tar.gz ]; then
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER.tar.gz"
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER.tar.gz.sig"
+    gpg --verify "$PKGNAME-$PKGVER.tar.gz.sig" "$PKGNAME-$PKGVER.tar.gz"
+fi
+    popd
+}
+
+build(){
+    pushd $LFS/source
+    tar -xf "$PKGNAME-$PKGVER.tar.gz"
+    cd $PKGNAME-$PKGVER
+    sed '6009s/$add_dir//' -i ltmain.sh
+    mkdir build
+    cd build
+    ../configure               \
+    --prefix=/usr              \
+    --build=$(../config.guess) \
+    --host=$LFS_TGT            \
+    --disable-nls              \
+    --enable-shared            \
+    --enable-gprofng=no        \
+    --disable-werror           \
+    --enable-64-bit-bfd        \
+    --enable-default-hash-style=gnu
+    make -j24
+    make DESTDIR="$LFS/build/$PKGNAME-$PKGVER-post" install
+    popd
+}
+
+postbuild(){
+    pushd $LFS/source
+    rm -rf "$PKGNAME-$PKGVER.tar.gz" "$PKGNAME-$PKGVER.tar.gz.sig" "$PKGNAME-$PKGVER"
+    pushd "$LFS/build/"
+    rmv "$PKGNAME-$PKGVER-post" $LFS
+    rm -v $LFS/usr/lib/lib{bfd,ctf,ctf-nobfd,opcodes,sframe}.{a,la}
+    popd
+    popd
+}
+pkgsrc
+build
+postbuild

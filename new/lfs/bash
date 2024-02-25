@@ -1,0 +1,39 @@
+#!/bin/env bash
+PKGNAME=bash
+PKGVER=5.2.21
+LFS=/mnt/lfs
+pkgsrc(){
+    pushd $LFS/source
+if [ ! -f $PKGNAME-$PKGVER.tar.gz ]; then
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER.tar.gz"
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER.tar.gz.sig"
+    gpg --verify "$PKGNAME-$PKGVER.tar.gz.sig" "$PKGNAME-$PKGVER.tar.gz"
+fi
+    popd
+}
+
+build(){
+    pushd $LFS/source
+    tar -xf "$PKGNAME-$PKGVER.tar.gz"
+    cd $PKGNAME-$PKGVER
+    ./configure --prefix=/usr                  \
+            --build=$(sh support/config.guess) \
+            --host=$LFS_TGT                    \
+            --without-bash-malloc
+    make -j24
+    make DESTDIR="$LFS/build/$PKGNAME-$PKGVER" install
+    popd
+}
+
+postbuild(){
+    pushd $LFS/source
+    rm -rf "$PKGNAME-$PKGVER.tar.gz" "$PKGNAME-$PKGVER.tar.gz.sig" "$PKGNAME-$PKGVER"
+    pushd "$LFS/build/"
+    rmv "$PKGNAME-$PKGVER" $LFS
+    ln -sv bash $LFS/bin/sh
+    popd
+    popd
+}
+pkgsrc
+build
+postbuild

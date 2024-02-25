@@ -1,0 +1,44 @@
+#!/bin/env bash
+PKGNAME=gcc
+PKGVER=13.2.0
+LFS=/mnt/lfs
+LENGTH=${#DEFPKG[@]}
+pkgsrc(){
+    pushd $LFS/source
+if [ ! -f $PKGNAME-$PKGVER.tar.gz ]; then
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER/$PKGNAME-$PKGVER.tar.gz"
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER/$PKGNAME-$PKGVER.tar.gz.sig"
+    gpg --verify "$PKGNAME-$PKGVER.tar.gz.sig" "$PKGNAME-$PKGVER.tar.gz"
+    tar -xf "$PKGNAME-$PKGVER.tar.gz"
+fi
+    popd
+}
+
+build(){
+    pushd "$LFS/source/$PKGNAME-$PKGVER"
+    mkdir build
+    cd build
+    ../libstdc++-v3/configure           \
+    --host=$LFS_TGT                 \
+    --build=$(../config.guess)      \
+    --prefix=/usr                   \
+    --disable-multilib              \
+    --disable-nls                   \
+    --disable-libstdcxx-pch         \
+    --with-gxx-include-dir=/tools/$LFS_TGT/include/c++/13.2.0
+    make -j24
+    make DESTDIR="$LFS/build/$PKGNAME-$PKGVER" install
+    popd
+}
+
+postbuild(){
+    pushd $LFS/source
+    rm -rf "$PKGNAME-$PKGVER.tar.gz" "$PKGNAME-$PKGVER.tar.gz.sig"
+    pushd "$LFS/build"
+    rmv "$PKGNAME-$PKGVER" $LFS
+    popd
+    popd
+}
+pkgsrc
+build
+postbuild

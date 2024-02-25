@@ -1,0 +1,10 @@
+#!/bin/env bash
+LFS=/mnt/lfs
+mkdir -pv $LFS/{etc,var,tools,source,dev,proc,sys,run} $LFS/usr/{bin,lib,sbin}
+
+for i in bin lib sbin; do
+  ln -sv $LFS/usr/$i $LFS/$i
+done
+
+ln -sv $LFS/usr/lib $LFS/lib64
+ln -sv $LFS/usr/lib $LFS/usr/lib64

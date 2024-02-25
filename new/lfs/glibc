@@ -1,0 +1,44 @@
+#!/bin/env bash
+PKGNAME=glibc
+PKGVER=2.39
+LFS=/mnt/lfs
+pkgsrc(){
+    pushd $LFS/source
+if [ ! -f $PKGNAME-$PKGVER.tar.gz ]; then
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER.tar.gz"
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER.tar.gz.sig"
+    gpg --verify "$PKGNAME-$PKGVER.tar.gz.sig" "$PKGNAME-$PKGVER.tar.gz"
+fi
+    popd
+}
+
+build(){
+    pushd $LFS/source
+    tar -xf "$PKGNAME-$PKGVER.tar.gz"
+    cd $PKGNAME-$PKGVER
+    mkdir build
+    cd build
+    ../configure                         \
+      --prefix=/usr                      \
+      --host=$LFS_TGT                    \
+      --build=$(../scripts/config.guess) \
+      --enable-kernel=4.19               \
+      --with-headers=$LFS/usr/include    \
+      --disable-nscd                     \
+      libc_cv_slibdir=/usr/lib
+    make -j24
+    make DESTDIR="$LFS/build/$PKGNAME-$PKGVER" install
+    popd
+}
+
+postbuild(){
+    pushd $LFS/source
+    rm -rf "$PKGNAME-$PKGVER.tar.gz" "$PKGNAME-$PKGVER.tar.gz.sig" "$PKGNAME-$PKGVER"
+    pushd "$LFS/build/"
+    rmv "$PKGNAME-$PKGVER" $LFS
+    popd
+    popd
+}
+pkgsrc
+build
+postbuild

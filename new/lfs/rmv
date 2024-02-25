@@ -1,0 +1,21 @@
+#!/bin/bash
+
+SRC=$1
+DST=$2
+rmv() {
+    local src="$1"
+    local dst="$2"
+    if [ ! -d "$source" ]; then
+        return
+    fi
+    mkdir -vp "$dst" | awk '{print $2}' >> $SRC/flist
+    for entry in "$src/"*; do
+        if [ -d "$entry" ]; then
+            rmv "$entry" "$dst/$(basename "$entry")"
+        else
+            mv -v "$entry" "$dst" | awk '{print $NF}' >> $SRC/flist
+        fi
+    done
+}
+
+rmv $SRC $DST

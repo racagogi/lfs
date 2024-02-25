@@ -1,0 +1,33 @@
+#!/bin/env bash
+PKGNAME=linux
+PKGVER=6.7.6
+LFS=/mnt/lfs
+pkgsrc(){
+    pushd $LFS/source
+if [ ! -f $PKGNAME-$PKGVER.tar.xz ]; then
+    wget "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.7.6.tar.xz"
+    wget "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.7.6.tar.sign"
+fi
+    popd
+}
+
+build(){
+    mkdir "$LFS/build/$PKGNAME-$PKGVER"
+    pushd $LFS/source
+    tar -xf "$PKGNAME-$PKGVER.tar.xz"
+    cd $PKGNAME-$PKGVER
+    make mrproper
+    make headers
+    find usr/include -type f ! -name '*.h' -delete
+    mv usr/include "$LFS/build/$PKGNAME-$PKGVER"
+    cd "$LFS/build"
+    rmv "$PKGNAME-$PKGVER" $LFS/usr
+    popd
+}
+
+postbuild(){
+        rm -rf "$PKGNAME-$PKGVER"
+}
+pkgsrc
+build
+postbuild

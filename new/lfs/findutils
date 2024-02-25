@@ -1,0 +1,39 @@
+#!/bin/env bash
+PKGNAME=findutils
+PKGVER=4.9.0
+LFS=/mnt/lfs
+pkgsrc(){
+    pushd $LFS/source
+if [ ! -f $PKGNAME-$PKGVER.tar.xz ]; then
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER.tar.xz"
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER.tar.xz.sig"
+    gpg --verify "$PKGNAME-$PKGVER.tar.xz.sig" "$PKGNAME-$PKGVER.tar.xz"
+fi
+    popd
+}
+
+build(){
+    pushd $LFS/source
+    xz -d "$PKGNAME-$PKGVER.tar.xz"
+    tar -xf "$PKGNAME-$PKGVER.tar"
+    cd $PKGNAME-$PKGVER
+    ./configure --prefix=/usr               \
+            --localstatedir=/var/lib/locate \
+            --host=$LFS_TGT                 \
+            --build=$(build-aux/config.guess)
+    make -j24
+    make DESTDIR="$LFS/build/$PKGNAME-$PKGVER" install
+    popd
+}
+
+postbuild(){
+    pushd $LFS/source
+    rm -rf "$PKGNAME-$PKGVER.tar" "$PKGNAME-$PKGVER.tar.xz.sig" "$PKGNAME-$PKGVER"
+    pushd "$LFS/build/"
+    rmv "$PKGNAME-$PKGVER" $LFS
+    popd
+    popd
+}
+pkgsrc
+build
+postbuild

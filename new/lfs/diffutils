@@ -1,0 +1,38 @@
+#!/bin/env bash
+PKGNAME=diffutils
+PKGVER=3.10
+LFS=/mnt/lfs
+pkgsrc(){
+    pushd $LFS/source
+if [ ! -f $PKGNAME-$PKGVER.tar.xz ]; then
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER.tar.xz"
+    wget "https://ftp.kaist.ac.kr/gnu/$PKGNAME/$PKGNAME-$PKGVER.tar.xz.sig"
+    gpg --verify "$PKGNAME-$PKGVER.tar.xz.sig" "$PKGNAME-$PKGVER.tar.xz"
+fi
+    popd
+}
+
+build(){
+    pushd $LFS/source
+    xz -d "$PKGNAME-$PKGVER.tar.xz"
+    tar -xf "$PKGNAME-$PKGVER.tar"
+    cd $PKGNAME-$PKGVER
+    ./configure --prefix=/usr   \
+            --host=$LFS_TGT \
+            --build=$(./build-aux/config.guess)
+    make -j24
+    make DESTDIR="$LFS/build/$PKGNAME-$PKGVER" install
+    popd
+}
+
+postbuild(){
+    pushd $LFS/source
+    rm -rf "$PKGNAME-$PKGVER.tar.xz" "$PKGNAME-$PKGVER.tar.xz.sig" "$PKGNAME-$PKGVER"
+    pushd "$LFS/build/"
+    rmv "$PKGNAME-$PKGVER" $LFS
+    popd
+    popd
+}
+pkgsrc
+build
+postbuild

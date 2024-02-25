@@ -1,0 +1,42 @@
+#!/bin/env bash
+PKGNAME=file
+PKGVER=5.45
+LFS=/mnt/lfs
+pkgsrc(){
+    pushd $LFS/source
+if [ ! -f $PKGNAME-$PKGVER.tar.gz ]; then
+    wget "ftp://ftp.astron.com/pub/$PKGNAME/$PKGNAME-$PKGVER.tar.gz"
+fi
+    popd
+}
+
+build(){
+    pushd $LFS/source
+    tar -xf "$PKGNAME-$PKGVER.tar.gz"
+    cd $PKGNAME-$PKGVER
+    mkdir build
+    pushd build
+    ../configure --disable-bzlib      \
+               --disable-libseccomp \
+               --disable-xzlib      \
+               --disable-zlib
+    make
+    popd
+    ./configure --prefix=/usr --host=$LFS_TGT --build=$(./config.guess)
+    make FILE_COMPILE=$(pwd)/build/src/file -j24
+    make DESTDIR="$LFS/build/$PKGNAME-$PKGVER" install
+    popd
+}
+
+postbuild(){
+    pushd $LFS/source
+    rm -rf "$PKGNAME-$PKGVER.tar.gz" "$PKGNAME-$PKGVER"
+    pushd "$LFS/build/"
+    rmv "$PKGNAME-$PKGVER" $LFS
+    rm -v $LFS/usr/lib/libmagic.la
+    popd
+    popd
+}
+pkgsrc
+build
+postbuild
